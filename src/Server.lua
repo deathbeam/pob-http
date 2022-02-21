@@ -58,7 +58,7 @@ function handle_request(sv, st)
 end
 
 local s = server.listen {
-    host = 'localhost',
+    host = '0.0.0.0',
     port = 8000,
     onstream = function (sv, st)
         ran, err = pcall(handle_request, sv, st)
