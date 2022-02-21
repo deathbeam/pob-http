@@ -1,5 +1,7 @@
 dofile('HeadlessWrapper.lua')
 
+local request = require "http.request"
+
 function fetch_contents(url)
   local headers, stream = assert(request.new_from_uri(url):go())
   local body = assert(stream:get_body_as_string())
@@ -12,10 +14,42 @@ end
 function is_array(t)
   local i = 0
   for _ in pairs(t) do
-      i = i + 1
-      if t[i] == nil then return false end
+    i = i + 1
+    if t[i] == nil then return false end
   end
   return true
+end
+
+function table_len(t)
+  local count = 0
+  for _ in pairs(t) do count = count + 1 end
+  return count
+end
+
+function table_last(t)
+  local len = table_len(t)
+  local count = 0
+  for key, value in pairs(t) do
+    count = count + 1
+    if count == len then
+      return value
+    end
+  end
+
+  return nil
+end
+
+function simplify_pair(out_key, key, body, out)
+  if table_len(body) == 2 and body[key] ~= nil then
+    if type(out[out_key]) ~= "table" then
+      out[out_key] = {}
+    end
+
+    out[out_key][body[key]] = table_last(body)
+    return true
+  end
+
+  return false
 end
 
 function normalize_build_data(input, out)
@@ -31,10 +65,44 @@ function normalize_build_data(input, out)
     if k == "elem" then
       key = v
     elseif k == "attrib" then
-      for k2, v2 in pairs(v) do body[k2] = v2 end
+      for k2, v2 in pairs(v) do
+        if not k2:find("^active") and v2 ~= nil and v2 ~= "" and v2 ~= "nil" then
+          body[k2] = v2
+        end
+      end
     elseif k then
       normalize_build_data(v, body, k)
     end
+  end
+
+  if key == "PathOfBuilding" then
+    for k, v in pairs(body) do
+      out[k] = v
+    end
+    return
+  end
+
+  if key == "Calcs" or key == "TreeView" or key == "Import" or key == "Section" or key == "Config" or key == "Notes" or key == "ItemSet" then
+    return
+  end
+
+  if table_len(body) == 1 and (body["value"] ~= nil or body["Spec"] ~= nil) then
+    out[key] = table_last(body)
+    return
+  end
+
+  if body["Skill"] ~= nil then
+    out[key] = body["Skill"]
+    return
+  end
+
+  should_return = simplify_pair(key, "name", body, out)
+  should_return = simplify_pair(key, "id", body, out) or should_return
+  should_return = simplify_pair(key, "stat", body, out) or should_return
+  should_return = simplify_pair(key, "nodeId", body, out) or should_return
+
+  if should_return then
+    return
   end
 
   if out[key] ~= nil then
