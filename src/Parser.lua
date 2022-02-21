@@ -53,8 +53,36 @@ function prepare_build(build)
   build.itemsTab.slots["Flask 4"].active = true
   build.itemsTab.slots["Flask 5"].active = true
 
+  -- configure stuff
+  build.calcsTab.input["enemyIsBoss"] = "Sirus"
+  build.calcsTab.input["multiplierNearbyEnemies"] = 1
+  build.calcsTab.input["multiplierWitheredStackCount"] = 15
+  build.calcsTab.input["buffAlchemistsGenius"] = true
+  build.calcsTab.input["infusedChannelingInfusion"] = true
+  build.calcsTab.input["buffLifetap"] = true
+  build.calcsTab.input["BrandsAttachedToEnemy"] = true
+  build.calcsTab.input["useChallengerCharges"] = true
+  build.calcsTab.input["useBlitzCharges"] = true
+  build.calcsTab.input["multiplierGaleForce"] = 10
+  build.calcsTab.input["multiplierRage"] = 100
+  build.calcsTab.input["conditionLeeching"] = true
+  build.calcsTab.input["conditionCritRecently"] = true
+  build.calcsTab.input["conditionEnemyTaunted"] = true
+  build.calcsTab.input["conditionEnemyMaimed"] = true
+  build.calcsTab.input["conditionEnemyChilled"] = true
+  build.calcsTab.input["conditionEnemyIgnited"] = true
+  build.calcsTab.input["intensifyIntensity"] = 10
+  build.calcsTab.input["plagueBearerState"] = "INF"
+
+  for k, v in pairs(build.calcsTab.input) do
+    build.configTab.input[k] = v
+  end
+
   -- finishing touches
+  build.configTab:ImportCalcSettings()
+  build.buildFlag = true
   build:OnFrame({})
+
   out = build.calcsTab.mainOutput
   out["MainSkill"] = build.skillsTab.socketGroupList[build.mainSocketGroup].displaySkillList[build.mainActiveSkill].activeEffect.grantedEffect.name
   return out
