@@ -19,5 +19,4 @@ RUN app/build.sh
 RUN ls app
 
 WORKDIR app
-EXPOSE 8000
-ENTRYPOINT ["/app/start.sh"]
+CMD ["/app/start.sh"]
