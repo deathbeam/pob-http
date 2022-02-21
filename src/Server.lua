@@ -57,9 +57,11 @@ function handle_request(sv, st)
     st:write_chunk(data, true)
 end
 
+local port = os.getenv("PORT") or 8000
+
 local s = server.listen {
     host = '0.0.0.0',
-    port = 8000,
+    port = port,
     onstream = function (sv, st)
         ran, err = pcall(handle_request, sv, st)
         if not ran then
@@ -69,5 +71,5 @@ local s = server.listen {
 }
 
 s:listen()
-print("Listening on port 8000")
+print("Listening on port "..port)
 s:loop()
