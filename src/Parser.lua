@@ -1,7 +1,5 @@
 dofile('HeadlessWrapper.lua')
 
-local request = require "http.request"
-
 function fetch_contents(url)
   local headers, stream = assert(request.new_from_uri(url):go())
   local body = assert(stream:get_body_as_string())
@@ -11,23 +9,42 @@ function fetch_contents(url)
   return body
 end
 
-function to_json(data)
-  local result = {}
+function is_array(t)
+  local i = 0
+  for _ in pairs(t) do
+      i = i + 1
+      if t[i] == nil then return false end
+  end
+  return true
+end
 
-  for key, value in pairs(data) do
-    if type(value) == "string" then
-      value = '"'..value..'"'
-    end
-    if type(value) == "table" then
-      value = to_json(value)
-    end
-
-    table.insert(result, string.format("\"%s\":%s", key, value))
+function normalize_build_data(input, out)
+  if type(input) ~= "table" then
+    out["value"] = input
+    return
   end
 
-  -- get simple json string
-  result = "{" .. table.concat(result, ",") .. "}"
-  return result
+  local key = nil
+  local body = {}
+
+  for k, v in pairs(input) do
+    if k == "elem" then
+      key = v
+    elseif k == "attrib" then
+      for k2, v2 in pairs(v) do body[k2] = v2 end
+    elseif k then
+      normalize_build_data(v, body, k)
+    end
+  end
+
+  if out[key] ~= nil then
+    if not is_array(out[key]) then
+      out[key] = {out[key]}
+    end
+    table.insert(out[key], body)
+  else
+    out[key] = body
+  end
 end
 
 function prepare_build(build)
@@ -84,8 +101,24 @@ function prepare_build(build)
   build:OnFrame({})
 
   out = build.calcsTab.mainOutput
-  out["MainSkill"] = build.skillsTab.socketGroupList[build.mainSocketGroup].displaySkillList[build.mainActiveSkill].activeEffect.grantedEffect.name
-  return out
+  -- out["MainSkill"] = build.skillsTab.socketGroupList[build.mainSocketGroup].displaySkillList[build.mainActiveSkill].activeEffect.grantedEffect.name
+
+  out_t = { elem = "PathOfBuilding" }
+
+  do
+    local node = { elem = "Build" }
+    build:Save(node)
+    table.insert(out_t, node)
+  end
+  for elem, saver in pairs(build.savers) do
+    local node = { elem = elem }
+    saver:Save(node)
+    table.insert(out_t, node)
+  end
+
+  out_n = {}
+  normalize_build_data(out_t, out_n)
+  return out_n
 end
 
 function get_character_data(accountName, characterName)
@@ -95,11 +128,11 @@ function get_character_data(accountName, characterName)
   local build = LoadModule("Modules/Build")
   build:Init(false, "")
   build:OnFrame({})
-	local charData = build.importTab:ImportItemsAndSkills(itemsJson)
-	build.importTab:ImportPassiveTreeAndJewels(passiveTreeJson, charData)
+  local charData = build.importTab:ImportItemsAndSkills(itemsJson)
+  build.importTab:ImportPassiveTreeAndJewels(passiveTreeJson, charData)
   return prepare_build(build)
 end
 
 return function(accountName, characterName)
-  return to_json(get_character_data(accountName, characterName))
+  return get_character_data(accountName, characterName)
 end

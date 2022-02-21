@@ -9,7 +9,7 @@ RUN cd /tmp && \
     cd && \
     rm -rf /tmp/luarocks
 
-RUN luarocks install http
+RUN luarocks install lunajson http
 RUN mkdir app
 ADD src app/src
 ADD build.sh app/build.sh
