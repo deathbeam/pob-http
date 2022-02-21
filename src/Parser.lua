@@ -30,6 +30,36 @@ function to_json(data)
   return result
 end
 
+function prepare_build(build)
+  local longestLink = 0
+  local socketGroupIndex = 0
+  local gemIndex = 1
+
+  -- find main skill
+  for k,v in pairs(build.skillsTab.socketGroupList) do
+    if v.enabled and #v.gemList >= longestLink then
+      longestLink = #v.gemList
+      socketGroupIndex = k
+    end
+  end
+
+  build.mainSocketGroup = socketGroupIndex
+  build.mainActiveSkill = gemIndex
+
+  -- activate all flasks
+  build.itemsTab.slots["Flask 1"].active = true
+  build.itemsTab.slots["Flask 2"].active = true
+  build.itemsTab.slots["Flask 3"].active = true
+  build.itemsTab.slots["Flask 4"].active = true
+  build.itemsTab.slots["Flask 5"].active = true
+
+  -- finishing touches
+  build:OnFrame({})
+  out = build.calcsTab.mainOutput
+  out["MainSkill"] = build.skillsTab.socketGroupList[build.mainSocketGroup].displaySkillList[build.mainActiveSkill].activeEffect.grantedEffect.name
+  return out
+end
+
 function get_character_data(accountName, characterName)
   print("Loading character "..characterName.." for account "..accountName)
   local itemsJson = fetch_contents("https://www.pathofexile.com/character-window/get-items?accountName="..accountName.."&character="..characterName)
@@ -39,18 +69,7 @@ function get_character_data(accountName, characterName)
   build:OnFrame({})
 	local charData = build.importTab:ImportItemsAndSkills(itemsJson)
 	build.importTab:ImportPassiveTreeAndJewels(passiveTreeJson, charData)
-  -- build.mainSocketGroup = 3
-  -- build.mainActiveSkill = 1
-  build.itemsTab.slots["Flask 1"].active = true
-  build.itemsTab.slots["Flask 2"].active = true
-  build.itemsTab.slots["Flask 3"].active = true
-  build.itemsTab.slots["Flask 4"].active = true
-  build.itemsTab.slots["Flask 5"].active = true
-  build:OnFrame({})
-
-  out = build.calcsTab.mainOutput
-  out["MainSkill"] = build.skillsTab.socketGroupList[build.mainSocketGroup].displaySkillList[build.mainActiveSkill].activeEffect.grantedEffect.name
-  return out
+  return prepare_build(build)
 end
 
 return function(accountName, characterName)
