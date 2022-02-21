@@ -28,9 +28,29 @@ function handle_request(sv, st)
 	end
 
 	local parts = str_split(path, '/')
-	local accountName = parts[1]
-	local characterName = parts[2]
-	local ran, data = pcall(get_character_data, accountName, characterName)
+
+	if not parts or #parts < 2 then
+		rsh:append(':status','404')
+		rsh:append('content-type','text/plain')
+		st:write_headers(rsh, false)
+		st:write_chunk("Invalid URL "..path, true)
+		return
+	end
+
+	local is_code = parts[1] == "code"
+	local accountName = ""
+	local characterName = ""
+
+	if is_code then
+		accountName = parts[2]
+		characterName = parts[3]
+	else
+		accountName = parts[1]
+		characterName = parts[2]
+	end
+
+	local ran, data, code = pcall(get_character_data, accountName, characterName)
+
 	if not ran then
 		rsh:append(':status','500')
 		rsh:append('content-type','text/plain')
@@ -40,9 +60,16 @@ function handle_request(sv, st)
 	end
 
 	rsh:append(':status','200')
-	rsh:append('content-type','application/json')
-	st:write_headers(rsh, false)
-	st:write_chunk(lunajson.encode(data), true)
+
+	if is_code then
+		rsh:append('content-type','text/plain')
+		st:write_headers(rsh, false)
+		st:write_chunk(code, true)
+	else
+		rsh:append('content-type','application/json')
+		st:write_headers(rsh, false)
+		st:write_chunk(lunajson.encode(data), true)
+	end
 end
 
 local port = os.getenv("PORT") or 8000

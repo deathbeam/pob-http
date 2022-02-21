@@ -1,6 +1,7 @@
 dofile('HeadlessWrapper.lua')
 
 local request = require "http.request"
+local zlib = require "zlib"
 
 function fetch_contents(url)
   local headers, stream = assert(request.new_from_uri(url):go())
@@ -168,10 +169,10 @@ function prepare_build(build)
   build.buildFlag = true
   build:OnFrame({})
 
-  out = build.calcsTab.mainOutput
+  local out = build.calcsTab.mainOutput
   -- out["MainSkill"] = build.skillsTab.socketGroupList[build.mainSocketGroup].displaySkillList[build.mainActiveSkill].activeEffect.grantedEffect.name
 
-  out_t = { elem = "PathOfBuilding" }
+  local out_t = { elem = "PathOfBuilding" }
 
   do
     local node = { elem = "Build" }
@@ -184,9 +185,10 @@ function prepare_build(build)
     table.insert(out_t, node)
   end
 
-  out_n = {}
+  local code = common.base64.encode(zlib.deflate()(common.xml.ComposeXML(out_t), "finish")):gsub("+","-"):gsub("/","_")
+  local out_n = {}
   normalize_build_data(out_t, out_n)
-  return out_n
+  return out_n, code
 end
 
 function get_character_data(accountName, characterName)
@@ -201,6 +203,4 @@ function get_character_data(accountName, characterName)
   return prepare_build(build)
 end
 
-return function(accountName, characterName)
-  return get_character_data(accountName, characterName)
-end
+return get_character_data
