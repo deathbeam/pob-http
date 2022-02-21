@@ -1,5 +1,5 @@
 FROM alpine:3.14
-RUN apk add --no-cache build-base bsd-compat-headers m4 luajit luajit-dev openssl openssl-dev curl git unzip
+RUN apk add --no-cache build-base bsd-compat-headers m4 luajit luajit-dev openssl openssl-dev zlib zlib-dev curl git unzip
 
 RUN cd /tmp && \
     git clone --depth=1 https://github.com/keplerproject/luarocks.git && \
@@ -9,7 +9,9 @@ RUN cd /tmp && \
     cd && \
     rm -rf /tmp/luarocks
 
-RUN luarocks install lunajson lua-zlib http
+RUN luarocks install lunajson
+RUN luarocks install lua-zlib
+RUN luarocks install http
 RUN mkdir app
 ADD src app/src
 ADD build.sh app/build.sh
