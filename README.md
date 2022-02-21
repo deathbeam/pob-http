@@ -1,2 +1,2 @@
-# pob-http-api
+# pob-http
 HTTP API for Path of Building
