@@ -1,5 +1,6 @@
 local server = require "http.server"
 local headers = require "http.headers"
+local get_character_data = require "Parser"
 
 function str_split (inputstr, sep)
     if sep == nil then
@@ -10,20 +11,6 @@ function str_split (inputstr, sep)
         table.insert(t, str)
     end
     return t
-end
-
-function eval_isolated_file(filename, env)
-    setmetatable ( env, { __index = _G } )
-    local status, result = assert(pcall(setfenv(assert(loadfile(filename)), env)))
-    setmetatable(env, nil)
-    return result
-end
-
-function get_character_data(accountName, characterName)
-    return eval_isolated_file("Parser.lua", {
-            accountName=accountName,
-            characterName=characterName
-        })
 end
 
 function handle_request(sv, st)

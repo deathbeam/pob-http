@@ -34,23 +34,25 @@ function get_character_data(accountName, characterName)
   print("Loading character "..characterName.." for account "..accountName)
   local itemsJson = fetch_contents("https://www.pathofexile.com/character-window/get-items?accountName="..accountName.."&character="..characterName)
   local passiveTreeJson = fetch_contents("https://www.pathofexile.com/character-window/get-passive-skills?accountName="..accountName.."&character="..characterName)
-  loadBuildFromJSON(itemsJson, passiveTreeJson)
-  build.mainSocketGroup = 3
-  build.mainActiveSkill = 1
+  local build = LoadModule("Modules/Build")
+  build:Init(false, "")
+  build:OnFrame({})
+	local charData = build.importTab:ImportItemsAndSkills(itemsJson)
+	build.importTab:ImportPassiveTreeAndJewels(passiveTreeJson, charData)
+  -- build.mainSocketGroup = 3
+  -- build.mainActiveSkill = 1
   build.itemsTab.slots["Flask 1"].active = true
   build.itemsTab.slots["Flask 2"].active = true
   build.itemsTab.slots["Flask 3"].active = true
   build.itemsTab.slots["Flask 4"].active = true
   build.itemsTab.slots["Flask 5"].active = true
-  runCallback("OnFrame")
+  build:OnFrame({})
 
   out = build.calcsTab.mainOutput
   out["MainSkill"] = build.skillsTab.socketGroupList[build.mainSocketGroup].displaySkillList[build.mainActiveSkill].activeEffect.grantedEffect.name
   return out
 end
 
-characterName = characterName or arg[1]
-accountName = accountName or arg[2]
-
-local data = get_character_data(accountName, characterName)
-return to_json(data)
+return function(accountName, characterName)
+  return to_json(get_character_data(accountName, characterName))
+end
