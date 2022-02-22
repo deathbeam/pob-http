@@ -46,16 +46,40 @@ function simplify_pair(out_key, key, body, out)
       out[out_key] = {}
     end
 
-    out[out_key][body[key]] = table_last(body)
+    out[out_key][tostring(body[key])] = table_last(body)
     return true
   end
 
   return false
 end
 
+function parse_value(val)
+  if type(val) ~= "string" then
+    return val
+  end
+
+  if "val" == "true" then
+    return true
+  end
+
+  if "val" == "false" then
+    return false
+  end
+
+  if tonumber(val) then
+    return tonumber(val)
+  end
+
+  if "val" == "0" then
+    return 0
+  end
+
+  return val
+end
+
 function normalize_build_data(input, out)
   if type(input) ~= "table" then
-    out["value"] = input
+    out["value"] = parse_value(input)
     return
   end
 
@@ -68,7 +92,7 @@ function normalize_build_data(input, out)
     elseif k == "attrib" then
       for k2, v2 in pairs(v) do
         if not k2:find("^active") and not k2:find("^enable") and k2 ~= "gemId" and k2 ~= "viewMode" and k2 ~= "targetVersion" and v2 ~= nil and v2 ~= "" and v2 ~= "nil" then
-          body[k2] = v2
+          body[k2] = parse_value(v2)
         end
       end
     elseif k then
