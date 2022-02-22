@@ -1,6 +1,6 @@
 local server = require "http.server"
 local headers = require "http.headers"
-local lunajson = require "lunajson"
+local json = require "rapidjson"
 local get_character_data = require "Parser"
 
 function str_split (inputstr, sep)
@@ -68,7 +68,7 @@ function handle_request(sv, st)
 	else
 		rsh:append('content-type','application/json')
 		st:write_headers(rsh, false)
-		st:write_chunk(lunajson.encode(data), true)
+		st:write_chunk(json.encode(data), true)
 	end
 end
 
