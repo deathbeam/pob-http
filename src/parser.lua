@@ -131,6 +131,11 @@ function prepare_build(build)
   build.itemsTab.slots["Flask 3"].active = true
   build.itemsTab.slots["Flask 4"].active = true
   build.itemsTab.slots["Flask 5"].active = true
+  build.itemsTab.activeItemSet["Flask 1"].active = true
+  build.itemsTab.activeItemSet["Flask 2"].active = true
+  build.itemsTab.activeItemSet["Flask 3"].active = true
+  build.itemsTab.activeItemSet["Flask 4"].active = true
+  build.itemsTab.activeItemSet["Flask 5"].active = true
 
   -- configure stuff
   build.calcsTab.input["enemyIsBoss"] = "Sirus"
@@ -187,7 +192,7 @@ function prepare_build(build)
   end
 
   -- finishing touches
-  build.configTab:ImportCalcSettings()
+  build.configTab:BuildModList()
   build.buildFlag = true
   build:OnFrame({})
 
