@@ -1,18 +1,8 @@
 local server = require "http.server"
 local headers = require "http.headers"
 local json = require "rapidjson"
-local get_character_data = require "Parser"
-
-function str_split (inputstr, sep)
-	if sep == nil then
-		sep = "%s"
-	end
-	local t={}
-	for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-		table.insert(t, str)
-	end
-	return t
-end
+local util = require "util"
+local parser = require "parser"
 
 function handle_request(sv, st)
 	local rqh = st:get_headers()
@@ -27,7 +17,7 @@ function handle_request(sv, st)
 		return
 	end
 
-	local parts = str_split(path, '/')
+	local parts = util.str_split(path, '/')
 
 	if not parts or #parts < 2 then
 		rsh:append(':status','404')
@@ -49,7 +39,7 @@ function handle_request(sv, st)
 		characterName = parts[2]
 	end
 
-	local ran, data, code = pcall(get_character_data, accountName, characterName)
+	local ran, data, code = pcall(parser, accountName, characterName)
 
 	if not ran then
 		rsh:append(':status','500')

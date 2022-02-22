@@ -9,8 +9,7 @@ srcdir="$pobdir/src"
 git clone --depth=1 https://github.com/PathOfBuildingCommunity/PathOfBuilding $pobdir
 
 # Create links to files
-ln -s $BASEDIR/src/Server.lua $srcdir/Server.lua
-ln -s $BASEDIR/src/Parser.lua $srcdir/Parser.lua
+ln -s $BASEDIR/src/*.lua $srcdir/
 
 # Switch to pob dir
 cd $pobdir

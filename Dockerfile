@@ -18,7 +18,6 @@ ADD build.sh app/build.sh
 ADD start.sh app/start.sh
 RUN chmod +x app/start.sh
 RUN app/build.sh
-RUN ls app
 
 WORKDIR app
 CMD ["/app/start.sh"]

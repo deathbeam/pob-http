@@ -1,52 +1,15 @@
 dofile('HeadlessWrapper.lua')
 
-local request = require "http.request"
 local zlib = require "zlib"
-
-function fetch_contents(url)
-  local headers, stream = assert(request.new_from_uri(url):go())
-  local body = assert(stream:get_body_as_string())
-  if headers:get ":status" ~= "200" then
-    error(body)
-  end
-  return body
-end
-
-function is_array(t)
-  local i = 0
-  for _ in pairs(t) do
-    i = i + 1
-    if t[i] == nil then return false end
-  end
-  return true
-end
-
-function table_len(t)
-  local count = 0
-  for _ in pairs(t) do count = count + 1 end
-  return count
-end
-
-function table_last(t)
-  local len = table_len(t)
-  local count = 0
-  for key, value in pairs(t) do
-    count = count + 1
-    if count == len then
-      return value
-    end
-  end
-
-  return nil
-end
+local util = require "util"
 
 function simplify_pair(out_key, key, body, out)
-  if table_len(body) == 2 and body[key] ~= nil then
+  if util.table_len(body) == 2 and body[key] ~= nil then
     if type(out[out_key]) ~= "table" then
       out[out_key] = {}
     end
 
-    out[out_key][tostring(body[key])] = table_last(body)
+    out[out_key][tostring(body[key])] = util.table_last(body)
     return true
   end
 
@@ -58,20 +21,16 @@ function parse_value(val)
     return val
   end
 
-  if "val" == "true" then
+  if val == "true" then
     return true
   end
 
-  if "val" == "false" then
+  if val == "false" then
     return false
   end
 
-  if tonumber(val) then
+  if val ~= "INF" and tonumber(val) then
     return tonumber(val)
-  end
-
-  if "val" == "0" then
-    return 0
   end
 
   return val
@@ -107,12 +66,12 @@ function normalize_build_data(input, out)
     return
   end
 
-  if key == "Calcs" or key == "TreeView" or key == "Import" or key == "Section" or key == "Config" or key == "Notes" or key == "ItemSet" or key == "EditedNodes" then
+  if key == "Calcs" or key == "TreeView" or key == "Import" or key == "Section" or key == "Notes" or key == "ItemSet" or key == "EditedNodes" then
     return
   end
 
-  if table_len(body) == 1 and (body["value"] ~= nil or body["Spec"] ~= nil) then
-    out[key] = table_last(body)
+  if util.table_len(body) == 1 and (body["value"] ~= nil or body["Spec"] ~= nil) then
+    out[key] = util.table_last(body)
     return
   end
 
@@ -126,6 +85,11 @@ function normalize_build_data(input, out)
     return
   end
 
+  if body["Input"] ~= nil then
+    out[key] = body["Input"]
+    return
+  end
+
   should_return = simplify_pair(key, "name", body, out)
   should_return = simplify_pair(key, "id", body, out) or should_return
   should_return = simplify_pair(key, "stat", body, out) or should_return
@@ -136,7 +100,7 @@ function normalize_build_data(input, out)
   end
 
   if out[key] ~= nil then
-    if not is_array(out[key]) then
+    if not util.is_array(out[key]) then
       out[key] = {out[key]}
     end
     table.insert(out[key], body)
@@ -170,24 +134,53 @@ function prepare_build(build)
 
   -- configure stuff
   build.calcsTab.input["enemyIsBoss"] = "Sirus"
-  build.calcsTab.input["multiplierNearbyEnemies"] = 1
-  build.calcsTab.input["multiplierWitheredStackCount"] = 15
-  build.calcsTab.input["buffAlchemistsGenius"] = true
+
   build.calcsTab.input["infusedChannelingInfusion"] = true
-  build.calcsTab.input["buffLifetap"] = true
+  build.calcsTab.input["plagueBearerState"] = "INF"
   build.calcsTab.input["BrandsAttachedToEnemy"] = true
   build.calcsTab.input["useChallengerCharges"] = true
   build.calcsTab.input["useBlitzCharges"] = true
+
+  build.calcsTab.input["multiplierNearbyEnemies"] = 1
   build.calcsTab.input["multiplierGaleForce"] = 10
   build.calcsTab.input["multiplierRage"] = 100
+  build.calcsTab.input["multiplierEnsnaredStackCount"] = 3
+  build.calcsTab.input["multiplierWitheredStackCount"] = 15
+  build.calcsTab.input["multiplierRuptureStacks"] = 3
+
+  build.calcsTab.input["intensifyIntensity"] = 5
+  build.calcsTab.input["meleeDistance"] = 1
+
+  build.calcsTab.input["buffElusive"] = true
+  build.calcsTab.input["buffLifetap"] = true
+  build.calcsTab.input["buffPhasing"] = true
+  build.calcsTab.input["buffAlchemistsGenius"] = true
+
+  build.calcsTab.input["conditionOnConsecratedGround"] = true
+  build.calcsTab.input["conditionUsedMinionSkillRecently"] = true
+  build.calcsTab.input["conditionUsedTravelSkillRecently"] = true
+  build.calcsTab.input["conditionUsedMovementSkillRecently"] = true
+  build.calcsTab.input["conditionImpaledRecently"] = true
+  build.calcsTab.input["conditionHaveManaStorm"] = true
   build.calcsTab.input["conditionLeeching"] = true
+  build.calcsTab.input["conditionAtCloseRange"] = true
   build.calcsTab.input["conditionCritRecently"] = true
+  build.calcsTab.input["conditionNearLinkedTarget"] = true
+
+  build.calcsTab.input["conditionEnemyMoving"] = true
+  build.calcsTab.input["conditionEnemyCursed"] = true
+  build.calcsTab.input["conditionEnemyPoisoned"] = true
+  build.calcsTab.input["conditionEnemyBleeding"] = true
   build.calcsTab.input["conditionEnemyTaunted"] = true
   build.calcsTab.input["conditionEnemyMaimed"] = true
+  build.calcsTab.input["conditionEnemyHindered"] = true
   build.calcsTab.input["conditionEnemyChilled"] = true
   build.calcsTab.input["conditionEnemyIgnited"] = true
-  build.calcsTab.input["intensifyIntensity"] = 10
-  build.calcsTab.input["plagueBearerState"] = "INF"
+  build.calcsTab.input["conditionEnemyShocked"] = true
+  build.calcsTab.input["conditionEnemyOnShockedGround"] = true
+  build.calcsTab.input["conditionEnemyOnConsecratedGround"] = true
+  build.calcsTab.input["conditionEnemyInChillingArea"] = true
+  build.calcsTab.input["conditionEnemyInFrostGlobe"] = true
 
   for k, v in pairs(build.calcsTab.input) do
     build.configTab.input[k] = v
@@ -199,8 +192,6 @@ function prepare_build(build)
   build:OnFrame({})
 
   local out = build.calcsTab.mainOutput
-  -- out["MainSkill"] = build.skillsTab.socketGroupList[build.mainSocketGroup].displaySkillList[build.mainActiveSkill].activeEffect.grantedEffect.name
-
   local out_t = { elem = "PathOfBuilding" }
 
   do
@@ -215,15 +206,15 @@ function prepare_build(build)
   end
 
   local code = common.base64.encode(zlib.deflate()(common.xml.ComposeXML(out_t), "finish")):gsub("+","-"):gsub("/","_")
-  local out_n = {}
-  normalize_build_data(out_t, out_n)
-  return out_n, code
+  local data = {}
+  normalize_build_data(out_t, data)
+  return data, code
 end
 
-function get_character_data(accountName, characterName)
+function parse_character(accountName, characterName)
   print("Loading character "..characterName.." for account "..accountName)
-  local itemsJson = fetch_contents("https://www.pathofexile.com/character-window/get-items?accountName="..accountName.."&character="..characterName)
-  local passiveTreeJson = fetch_contents("https://www.pathofexile.com/character-window/get-passive-skills?accountName="..accountName.."&character="..characterName)
+  local itemsJson = util.fetch_contents("https://www.pathofexile.com/character-window/get-items?accountName="..accountName.."&character="..characterName)
+  local passiveTreeJson = util.fetch_contents("https://www.pathofexile.com/character-window/get-passive-skills?accountName="..accountName.."&character="..characterName)
   local build = LoadModule("Modules/Build")
   build:Init(false, "")
   build:OnFrame({})
@@ -232,4 +223,4 @@ function get_character_data(accountName, characterName)
   return prepare_build(build)
 end
 
-return get_character_data
+return parse_character
