@@ -97,6 +97,11 @@ function normalize_build_data(input, out)
     return
   end
 
+  if body["Socket"] ~= nil then
+    out[key] = body["Socket"]
+    return
+  end
+
   should_return = simplify_pair(key, "name", body, out)
   should_return = simplify_pair(key, "id", body, out) or should_return
   should_return = simplify_pair(key, "stat", body, out) or should_return
