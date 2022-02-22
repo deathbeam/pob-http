@@ -67,7 +67,7 @@ function normalize_build_data(input, out)
       key = v
     elseif k == "attrib" then
       for k2, v2 in pairs(v) do
-        if not k2:find("^active") and v2 ~= nil and v2 ~= "" and v2 ~= "nil" then
+        if not k2:find("^active") and not k2:find("^enable") and k2 ~= "gemId" and k2 ~= "viewMode" and k2 ~= "targetVersion" and v2 ~= nil and v2 ~= "" and v2 ~= "nil" then
           body[k2] = v2
         end
       end
@@ -83,7 +83,7 @@ function normalize_build_data(input, out)
     return
   end
 
-  if key == "Calcs" or key == "TreeView" or key == "Import" or key == "Section" or key == "Config" or key == "Notes" or key == "ItemSet" then
+  if key == "Calcs" or key == "TreeView" or key == "Import" or key == "Section" or key == "Config" or key == "Notes" or key == "ItemSet" or key == "EditedNodes" then
     return
   end
 
