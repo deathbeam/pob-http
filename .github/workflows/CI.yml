@@ -1,0 +1,26 @@
+name: CI
+
+on:
+	push:
+		branches: [ main ]
+	pull_request:
+		branches: [ main ]
+
+env:
+	HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+jobs:
+	deploy:
+		runs-on: ubuntu-latest
+		steps:
+			- name: Checkout
+				uses: actions/checkout@v2
+
+			- name: Build
+				run: build.sh
+
+			- name: Login
+				run: docker login --username=_ --password=$HEROKU_API_KEY registry.heroku.com
+
+			- name: Publish
+				run: release.sh
