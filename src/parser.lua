@@ -165,12 +165,20 @@ function build_stats(build)
 end
 
 function build_build(build)
+  local mainSlot = ""
+  local mainSkill = ""
+
+  if build.mainSocketGroup > 0 then
+    mainSlot = build.skillsTab.socketGroupList[build.mainSocketGroup].slot
+    mainSkill = build.skillsTab.socketGroupList[build.mainSocketGroup].gemList[build.mainActiveSkill].nameSpec
+  end
+
   local out = {
     level=build.characterLevel,
-    class=build.curClassName,
-    ascendancy=build.curAscendClassName,
-    mainSlot=build.skillsTab.socketGroupList[build.mainSocketGroup].slot,
-    mainSkill=build.skillsTab.socketGroupList[build.mainSocketGroup].gemList[build.mainActiveSkill].nameSpec
+    class=build.spec.curClassName,
+    ascendancy=build.spec.curAscendClassName,
+    mainSlot=mainSlot,
+    mainSkill=mainSkill
   }
 
   for k,v in pairs(build_stats(build)) do out[k] = v end
@@ -190,6 +198,20 @@ function prepare_build(build)
     if v.enabled and #v.gemList >= longestLink then
       longestLink = #v.gemList
       socketGroupIndex = k
+
+      local foundAlready = false
+
+      for i, gem in ipairs(v.gemList) do
+        if gem.gemData then
+          if gem.gemData.tags.active_skill == true then
+            if not foundAlready or (gem.gemData.tags.spell and not gem.gemData.tags.curse) then
+              gemIndex = i
+            end
+
+            foundAlready = true
+          end
+        end
+      end
     end
   end
 
