@@ -64,7 +64,16 @@ function build_items(build)
     end
 
     if item.quality then out_item["quality"] = item.quality end
-    if item.requirements and item.requirements.level then out_item["level"] = item.requirements.level end
+    if item.requirements then
+      requirements = {}
+      if item.requirements.level and item.requirements.level > 0 then requirements["level"] = item.requirements.level end
+      if item.requirements.strMod and item.requirements.strMod > 0 then requirements["str"] = item.requirements.strMod end
+      if item.requirements.intMod and item.requirements.intMod > 0 then requirements["int"] = item.requirements.intMod end
+      if item.requirements.dexMod and item.requirements.dexMod > 0 then requirements["dex"] = item.requirements.dexMod end
+      if util.table_len(requirements) > 0 then
+        out_item["requirements"] = requirements
+      end
+    end
     if item.sockets and #item.sockets > 0 then
       local line = ""
       for i, socket in pairs(item.sockets) do
