@@ -36,14 +36,15 @@ function build_items(build)
     out_item["base"] = item.baseName
     out_item["rarity"] = item.rarity
     out_item["league"] = item.league
-    out_item["influences"] = {}
-    if item.shaper then table.insert(out_item["influences"], "Shaper") end
-    if item.elder then table.insert(out_item["influences"], "Elder") end
-    if item.adjudicator then table.insert(out_item["influences"], "Warlord") end
-    if item.basilisk then table.insert(out_item["influences"], "Hunter") end
-    if item.crusader then table.insert(out_item["influences"], "Crusader") end
-    if item.eyrie then table.insert(out_item["influences"], "Redeemer") end
-    out_item["level"] = item.itemLevel
+    influences = {}
+    if item.shaper then table.insert(influences, "Shaper") end
+    if item.elder then table.insert(influences, "Elder") end
+    if item.adjudicator then table.insert(influences, "Warlord") end
+    if item.basilisk then table.insert(influences, "Hunter") end
+    if item.crusader then table.insert(influences, "Crusader") end
+    if item.eyrie then table.insert(influences, "Redeemer") end
+    if #influences > 0 then out_item["influences"] = influences end
+    out_item["ilvl"] = item.itemLevel
     out_item["corrupted"] = item.corrupted or item.scourge
     if item.armourData then
       if item.armourData["Armour"] and item.armourData["Armour"] > 0 then out_item["armour"] = item.armourData["Armour"] end
@@ -51,12 +52,30 @@ function build_items(build)
       if item.armourData["EnergyShield"] and item.armourData["EnergyShield"] > 0 then out_item["energyShield"] = item.armourData["EnergyShield"] end
       if item.armourData["Ward"] and item.armourData["Ward"] > 0 then out_item["ward"] = item.armourData["Ward"] end
     end
-    out_item["implicits"] = {}
-    for _, mod in ipairs(item.enchantModLines) do table.insert(out_item["implicits"], mod_to_string(mod)) end
-    for _, mod in ipairs(item.scourgeModLines) do table.insert(out_item["implicits"], mod_to_string(mod)) end
-    for _, mod in ipairs(item.implicitModLines) do table.insert(out_item["implicits"], mod_to_string(mod)) end
-    out_item["explicits"] = {}
-    for _, mod in ipairs(item.explicitModLines) do table.insert(out_item["explicits"], mod_to_string(mod)) end
+    implicits = {}
+    for _, mod in ipairs(item.enchantModLines) do table.insert(implicits, mod_to_string(mod)) end
+    for _, mod in ipairs(item.scourgeModLines) do table.insert(implicits, mod_to_string(mod)) end
+    for _, mod in ipairs(item.implicitModLines) do table.insert(implicits, mod_to_string(mod)) end
+    if #implicits > 0 then out_item["implicits"] = implicits end
+
+    if #item.explicitModLines > 0 then
+      out_item["explicits"] = {}
+      for _, mod in ipairs(item.explicitModLines) do table.insert(out_item["explicits"], mod_to_string(mod)) end
+    end
+
+    if item.quality then out_item["quality"] = item.quality end
+    if item.requirements and item.requirements.level then out_item["level"] = item.requirements.level end
+    if item.sockets and #item.sockets > 0 then
+      local line = ""
+      for i, socket in pairs(item.sockets) do
+        line = line .. socket.color
+        if item.sockets[i+1] then
+          line = line .. (socket.group == item.sockets[i+1].group and "-" or " ")
+        end
+      end
+      out_item["sockets"] = line
+    end
+    if item.jewelRadiusLabel then out_item["radius"] = item.jewelRadiusLabel end
 
     items[id] = out_item
   end
@@ -194,7 +213,7 @@ function prepare_build(build)
 
   build.calcsTab.input["infusedChannelingInfusion"] = true
   build.calcsTab.input["plagueBearerState"] = "INF"
-  build.calcsTab.input["BrandsAttachedToEnemy"] = true
+  build.calcsTab.input["BrandsAttachedToEnemy"] = 1
   build.calcsTab.input["useChallengerCharges"] = true
   build.calcsTab.input["useBlitzCharges"] = true
 
