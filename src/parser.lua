@@ -3,110 +3,162 @@ dofile('HeadlessWrapper.lua')
 local zlib = require "zlib"
 local util = require "util"
 
-function simplify_pair(out_key, key, body, out)
-  if util.table_len(body) == 2 and body[key] ~= nil then
-    if type(out[out_key]) ~= "table" then
-      out[out_key] = {}
+function mod_to_string(mod)
+  local line = mod.line
+  if mod.crafted then
+    line = "{crafted}" .. line
+  end
+  if mod.scourge then
+    line = "{scourge}" .. line
+  end
+  if mod.fractured then
+    line = "{fractured}" .. line
+  end
+  return line
+end
+
+function build_items(build)
+  local slots = {}
+
+  for slotName, slot in pairs(build.itemsTab.slots) do
+    if slot.selItemId ~= 0 and not slot.nodeId then
+      slots[slotName] = slot.selItemId
+    end
+  end
+
+  local items = {}
+
+  for _, id in ipairs(build.itemsTab.itemOrderList) do
+    local item = build.itemsTab.items[id]
+    local out_item = {}
+    out_item["id"] = item.uniqueID
+    out_item["name"] = item.title or ((item.namePrefix or "")..item.baseName..(item.nameSuffix or ""))
+    out_item["base"] = item.baseName
+    out_item["rarity"] = item.rarity
+    out_item["league"] = item.league
+    out_item["influences"] = {}
+    if item.shaper then table.insert(out_item["influences"], "Shaper") end
+    if item.elder then table.insert(out_item["influences"], "Elder") end
+    if item.adjudicator then table.insert(out_item["influences"], "Warlord") end
+    if item.basilisk then table.insert(out_item["influences"], "Hunter") end
+    if item.crusader then table.insert(out_item["influences"], "Crusader") end
+    if item.eyrie then table.insert(out_item["influences"], "Redeemer") end
+    out_item["level"] = item.itemLevel
+    out_item["corrupted"] = item.corrupted or item.scourge
+    if item.armourData then
+      if item.armourData["Armour"] and item.armourData["Armour"] > 0 then out_item["armour"] = item.armourData["Armour"] end
+      if item.armourData["Evasion"] and item.armourData["Evasion"] > 0 then out_item["evasion"] = item.armourData["Evasion"] end
+      if item.armourData["EnergyShield"] and item.armourData["EnergyShield"] > 0 then out_item["energyShield"] = item.armourData["EnergyShield"] end
+      if item.armourData["Ward"] and item.armourData["Ward"] > 0 then out_item["ward"] = item.armourData["Ward"] end
+    end
+    out_item["implicits"] = {}
+    for _, mod in ipairs(item.enchantModLines) do table.insert(out_item["implicits"], mod_to_string(mod)) end
+    for _, mod in ipairs(item.scourgeModLines) do table.insert(out_item["implicits"], mod_to_string(mod)) end
+    for _, mod in ipairs(item.implicitModLines) do table.insert(out_item["implicits"], mod_to_string(mod)) end
+    out_item["explicits"] = {}
+    for _, mod in ipairs(item.explicitModLines) do table.insert(out_item["explicits"], mod_to_string(mod)) end
+
+    items[id] = out_item
+  end
+
+  return {
+    slots=slots,
+    items=items
+  }
+end
+
+function build_tree(build)
+  local out = {}
+  local tree = util.table_last(build.treeTab.specList)
+  out["url"] = tree:EncodeURL("https://www.pathofexile.com/passive-skill-tree/")
+  out["nodes"] = {}
+  for nodeId in pairs(tree.allocNodes) do table.insert(out["nodes"], nodeId) end
+  out["masteries"] = {}
+  for mastery, effect in pairs(tree.masterySelections) do out["masteries"][tostring(mastery)] = effect end
+  out["sockets"] = {}
+  for nodeId, itemId in pairs(tree.jewels) do
+    if itemId > 0 then
+      out["sockets"][tostring(nodeId)] = itemId
+    end
+  end
+
+  return out
+end
+
+function build_skills(build)
+  local out = {}
+  for _, socket_group in ipairs(build.skillsTab.socketGroupList) do
+    local out_socket_group = {}
+
+    for _, gem in ipairs(socket_group.gemList) do
+      table.insert(out_socket_group, {
+          skillId=gem.skillId,
+          name=gem.nameSpec,
+          level=gem.level,
+          quality=gem.quality,
+          qualityId=gem.qualityId,
+        })
     end
 
-    out[out_key][tostring(body[key])] = util.table_last(body)
-    return true
+    out[socket_group.slot] = out_socket_group
   end
-
-  return false
+  return out
 end
 
-function parse_value(val)
-  if type(val) ~= "string" then
-    return val
-  end
+function build_stats(build)
+  local player_stats = {}
 
-  if val == "true" then
-    return true
-  end
-
-  if val == "false" then
-    return false
-  end
-
-  if val ~= "INF" and tonumber(val) then
-    return tonumber(val)
-  end
-
-  return val
-end
-
-function normalize_build_data(input, out)
-  if type(input) ~= "table" then
-    out["value"] = parse_value(input)
-    return
-  end
-
-  local key = nil
-  local body = {}
-
-  for k, v in pairs(input) do
-    if k == "elem" then
-      key = v
-    elseif k == "attrib" then
-      for k2, v2 in pairs(v) do
-        if not k2:find("^active") and not k2:find("^enable") and k2 ~= "gemId" and k2 ~= "viewMode" and k2 ~= "targetVersion" and v2 ~= nil and v2 ~= "" and v2 ~= "nil" then
-          body[k2] = parse_value(v2)
+  for index, stat_data in ipairs(build.displayStats) do
+    if not stat_data.flag or build.calcsTab.mainEnv.player.mainSkill.skillFlags[stat_data.flag] then
+      if stat_data.stat and not player_stats[stat_data.stat] then
+        local stat_val = build.calcsTab.mainOutput[stat_data.stat]
+        if stat_val and (stat_data.condFunc and stat_data.condFunc(stat_val, build.calcsTab.mainOutput) or true) then
+          player_stats[stat_data.stat] = stat_val
         end
       end
-    elseif k then
-      normalize_build_data(v, body, k)
     end
   end
 
-  if key == "PathOfBuilding" then
-    for k, v in pairs(body) do
-      out[k] = v
+  for index, stat in ipairs(build.extraSaveStats) do
+    local stat_val = build.calcsTab.mainOutput[stat]
+    if stat_val then
+      player_stats[stat] = stat_val
     end
-    return
   end
 
-  if key == "Calcs" or key == "TreeView" or key == "Import" or key == "Section" or key == "Notes" or key == "ItemSet" or key == "EditedNodes" then
-    return
-  end
+  local minion_stats = {}
 
-  if util.table_len(body) == 1 and (body["value"] ~= nil or body["Spec"] ~= nil) then
-    out[key] = util.table_last(body)
-    return
-  end
-
-  if body["Skill"] ~= nil then
-    out[key] = body["Skill"]
-    return
-  end
-
-  if body["Socket"] ~= nil then
-    out[key] = body["Socket"]
-    return
-  end
-
-  if body["Input"] ~= nil then
-    out[key] = body["Input"]
-    return
-  end
-
-  should_return = simplify_pair(key, "name", body, out)
-  should_return = simplify_pair(key, "id", body, out) or should_return
-  should_return = simplify_pair(key, "stat", body, out) or should_return
-  should_return = simplify_pair(key, "nodeId", body, out) or should_return
-
-  if should_return then
-    return
-  end
-
-  if out[key] ~= nil then
-    if not util.is_array(out[key]) then
-      out[key] = {out[key]}
+  if build.calcsTab.mainEnv.minion then
+    for index, stat_data in ipairs(build.minionDisplayStats) do
+      if stat_data.stat then
+        local stat_val = build.calcsTab.mainOutput.Minion[stat_data.stat]
+        if stat_val then
+          minion_stats[stat_data.stat] = stat_val
+        end
+      end
     end
-    table.insert(out[key], body)
-  else
-    out[key] = body
   end
+
+  local out = {}
+  if player then out["player"] = player end
+  if minion then out["minion"] = minion end
+  return out
+end
+
+function build_build(build)
+  local out = {
+    level=build.characterLevel,
+    class=build.curClassName,
+    ascendancy=build.curAscendClassName,
+    mainSlot=build.skillsTab.socketGroupList[build.mainSocketGroup].slot,
+    mainSkill=build.skillsTab.socketGroupList[build.mainSocketGroup].gemList[build.mainActiveSkill].nameSpec
+  }
+
+  for k,v in pairs(build_stats(build)) do out[k] = v end
+  for k,v in pairs(build_items(build)) do out[k] = v end
+  out["skills"] = build_skills(build)
+  out["tree"] = build_tree(build)
+  return out
 end
 
 function prepare_build(build)
@@ -211,8 +263,7 @@ function prepare_build(build)
   end
 
   local code = common.base64.encode(zlib.deflate()(common.xml.ComposeXML(out_t), "finish")):gsub("+","-"):gsub("/","_")
-  local data = {}
-  normalize_build_data(out_t, data)
+  local data = build_build(build)
   return data, code
 end
 

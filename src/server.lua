@@ -58,7 +58,7 @@ function handle_request(sv, st)
 	else
 		rsh:append('content-type','application/json')
 		st:write_headers(rsh, false)
-		st:write_chunk(json.encode(data), true)
+		st:write_chunk(json.encode(data, {sort_keys=true, empty_table_as_array=true}), true)
 	end
 end
 
