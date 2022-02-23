@@ -98,7 +98,7 @@ end
 function build_tree(build)
   local out = {}
   local tree = util.table_last(build.treeTab.specList)
-  out["url"] = tree:EncodeURL("https://www.pathofexile.com/passive-skill-tree/")
+  out["url"] = tree:EncodeURL("https://www.pathofexile.com/fullscreen-passive-skill-tree/")
   out["nodes"] = {}
   for nodeId in pairs(tree.allocNodes) do table.insert(out["nodes"], nodeId) end
   out["masteries"] = {}
