@@ -159,8 +159,8 @@ function build_stats(build)
   end
 
   local out = {}
-  if player then out["player"] = player end
-  if minion then out["minion"] = minion end
+  if player_stats then out["player"] = player_stats end
+  if minion_stats then out["minion"] = minion_stats end
   return out
 end
 
